@@ -40,42 +40,34 @@ import net.grinder.engine.process.jython.JythonScriptEngine;
  * @author Mike Stone
  */
 public final class MultilingualScriptEngine implements ScriptEngine {
-    private static final Map<String, Class<? extends ScriptEngine>> engineTypes;
+    private Map<String, ScriptEngine> m_engineTypes;
+    private ScriptEngine m_engine;
 
-    static {
-        engineTypes = new HashMap<String, Class<? extends ScriptEngine>>();
-        engineTypes.put("py", JythonScriptEngine.class);
-        engineTypes.put("jy", JythonScriptEngine.class);
-        engineTypes.put("rb", JRubyScriptEngine.class);
-        engineTypes.put("jrb", JRubyScriptEngine.class);
+    public MultilingualScriptEngine() throws EngineException {
+        // To see why these need to be initialized now instead of
+        // during the initialise method, see the comment in the run
+        // method of GrinderProcess.  Presumably that comment is
+        // accurate.  JRuby probably doesn't strictly need to be
+        // initialized, but might as well.  If this weren't necessary,
+        // we could use a map of string to Class<? extends
+        // ScriptEngine> instead, and initialize during the initialise
+        // method.
+        JythonScriptEngine jython = new JythonScriptEngine();
+        JRubyScriptEngine jruby = new JRubyScriptEngine();
+        m_engineTypes = new HashMap<String, ScriptEngine>();
+        m_engineTypes.put("py", jython);
+        m_engineTypes.put("jy", jython);
+        m_engineTypes.put("rb", jruby);
+        m_engineTypes.put("jrb", jruby);
     }
-
-    private ScriptEngine engine;
 
     @Override
     public void initialise(ScriptLocation script) throws EngineException {
-        if (engine == null) {
-            setupEngine(script);
+        if (m_engine == null) {
+            m_engine = m_engineTypes.get(getExtension(script));
         }
 
-        engine.initialise(script);
-    }
-
-    private void setupEngine(ScriptLocation script) throws EngineException {
-        String extension = getExtension(script);
-        Class<? extends ScriptEngine> type = engineTypes.get(extension);
-
-        if (type == null) {
-            throw new EngineException("Cannot find engine for extension " + extension);
-        }
-
-        try {
-            engine = type.newInstance();
-        } catch (InstantiationException e) {
-            throw new EngineException("Failed to instantiate engine of type " + type.getName() + " for extension " + extension, e);
-        } catch (IllegalAccessException e) {
-            throw new EngineException("Illegal access for engine of type " + type.getName() + " for extension " + extension, e);
-        }
+        m_engine.initialise(script);
     }
 
     private String getExtension(ScriptLocation script) {
@@ -91,25 +83,25 @@ public final class MultilingualScriptEngine implements ScriptEngine {
 
     @Override
     public WorkerRunnable createWorkerRunnable() throws EngineException {
-        return engine.createWorkerRunnable();
+        return m_engine.createWorkerRunnable();
     }
 
     @Override
     public WorkerRunnable createWorkerRunnable(Object testRunner) throws EngineException {
-        return engine.createWorkerRunnable(testRunner);
+        return m_engine.createWorkerRunnable(testRunner);
     }
 
     @Override
     public void shutdown() throws EngineException {
-        engine.shutdown();
+        m_engine.shutdown();
     }
 
     @Override
     public String getDescription() {
         String version = "Multilingual 0.0.1";
 
-        if (engine != null) {
-            return version + ": " + engine.getDescription();
+        if (m_engine != null) {
+            return version + ": " + m_engine.getDescription();
         }
 
         return version;

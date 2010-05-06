@@ -52,7 +52,7 @@ import net.grinder.engine.common.EngineException;
 import net.grinder.engine.communication.ConsoleListener;
 import net.grinder.engine.messages.InitialiseGrinderMessage;
 import net.grinder.engine.process.instrumenter.MasterInstrumenter;
-import net.grinder.engine.process.jython.JythonScriptEngine;
+import net.grinder.engine.process.multilingual.MultilingualScriptEngine;
 import net.grinder.messages.console.RegisterTestsMessage;
 import net.grinder.script.InvalidContextException;
 import net.grinder.statistics.ExpressionView;
@@ -211,7 +211,7 @@ final class GrinderProcess {
     final Timer timer = new Timer(true);
     timer.schedule(new TickLoggerTimerTask(), 0, 1000);
 
-    final ScriptEngine scriptEngine = new JythonScriptEngine();
+    final ScriptEngine scriptEngine = new MultilingualScriptEngine();
 
     // Don't start the message pump until we've initialised Jython. Jython 2.5+
     // tests to see whether the stdin stream is a tty, and on some versions of
