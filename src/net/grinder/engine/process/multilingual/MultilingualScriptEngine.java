@@ -65,13 +65,17 @@ public final class MultilingualScriptEngine implements ScriptEngine {
     public void initialise(ScriptLocation script) throws EngineException {
         if (m_engine == null) {
             m_engine = m_engineTypes.get(getExtension(script));
+
+            if (m_engine == null) {
+                throw new EngineException("Could not find engine for script " + script + ", with extension " + getExtension(script));
+            }
         }
 
         m_engine.initialise(script);
     }
 
     private String getExtension(ScriptLocation script) {
-        String[] split = script.getFile().getName().split(".");
+        String[] split = script.getFile().getName().split("\\.");
 
         // No extension...
         if (split.length < 2) {

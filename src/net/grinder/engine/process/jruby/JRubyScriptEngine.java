@@ -100,7 +100,7 @@ public final class JRubyScriptEngine implements ScriptEngine {
 
         public void run() throws ScriptExecutionException {
             // Does this need to be run in a new context...?
-            m_testRunner.callMethod(ThreadContext.newContext(m_runtime), "run");
+            m_testRunner.callMethod(m_runtime.getCurrentContext(), "run");
         }
 
         public void shutdown() throws ScriptExecutionException {
