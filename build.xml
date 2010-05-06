@@ -203,6 +203,10 @@ what you want. Currently the conditionally built modules are:
       <pathelement path="${lib.dir}/jruby*.jar"/>
     </path>
 
+    <path id="junit.classpath">
+      <pathelement path="${lib.dir}/junit.jar"/>
+    </path>
+
     <path id="asm.classpath">
       <!-- Must use fileset, pathelement doesn't accept wildcards. -->
       <fileset dir="${lib.dir}">
@@ -227,6 +231,7 @@ what you want. Currently the conditionally built modules are:
       <path refid="asm.classpath"/>
       <path refid="jython.classpath"/>
       <path refid="jruby.classpath"/>
+      <path refid="junit.classpath"/>
       <path refid="picocontainer.classpath"/>
       <path refid="xmlbeans.classpath"/>
       <pathelement path="${xmlbeans.jar}"/>
@@ -466,7 +471,7 @@ what you want. Currently the conditionally built modules are:
   <!-- Reports                                                             -->
   <!-- =================================================================== -->
   <target name="checkstyle" description="Check code formatting.">
-
+    <!-- Can't get it to work with minimal effort... and not that interested anyways.
     <taskdef resource="checkstyletask.properties">
       <classpath>
         <pathelement path="${checkstyle.classpath}"/>
@@ -478,7 +483,7 @@ what you want. Currently the conditionally built modules are:
     <checkstyle config="etc/checkstyle.xml">
       <fileset dir="${src.dir}">
         <include name="net/grinder/**/*.java"/>
-        <!-- <include name="net/grinder/**/*.properties"/> -->
+        --><!-- <include name="net/grinder/**/*.properties"/> --><!--
       </fileset>
 
       <property key="checkstyle.cache.file"
@@ -489,6 +494,7 @@ what you want. Currently the conditionally built modules are:
       <formatter type="plain"/>
       <formatter type="xml" toFile="${build.dir}/checkstyle_errors.xml"/>
     </checkstyle>
+    -->
   </target>
 
   <!-- =================================================================== -->
