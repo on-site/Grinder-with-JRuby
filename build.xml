@@ -201,7 +201,9 @@ what you want. Currently the conditionally built modules are:
     </path>
 
     <path id="jruby.classpath">
-      <pathelement path="${lib.dir}/jruby*.jar"/>
+      <fileset dir="${lib.dir}">
+        <include name="jruby*.jar"/>
+      </fileset>
     </path>
 
     <path id="junit.classpath">
