@@ -1,0 +1,260 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Puppy Crawl//DTD Check Configuration 1.1//EN"
+    "http://www.puppycrawl.com/dtds/configuration_1_1.dtd">
+
+<module name="Checker">
+
+    <module name="SuppressionFilter">
+        <property name="file" value="${checkstyle.suppressions.file}"/>
+    </module>
+
+    <module name="NewlineAtEndOfFile">
+        <property name="lineSeparator" value="lf"/>
+    </module>
+
+    <module name="PackageHtml"/>
+    <!-- No good as it matches the common header comments.
+    <module name="StrictDuplicateCode"/> -->
+
+    <!-- <module name="Translation"/> -->
+
+    <module name="TreeWalker">
+
+        <property name="cacheFile" value="${checkstyle.cache.file}"/>
+        <property name="tabWidth" value="4"/>
+
+        <!-- Modules are grouped in the same order as the Checkstyle
+        documentation. -->
+
+        <module name="JavadocMethod">
+          <property name="scope" value="protected"/>
+          <property name="allowUndeclaredRTE" value="true"/>
+          <property name="allowThrowsTagsForSubclasses" value="true"/>
+
+        <!-- Work around for Checklipse 2.1.0 issues. See
+            http://www.arcknowledge.com/gmane.comp.db.axion.devel/2006-10/msg00017.html
+        -->
+          <property name="logLoadErrors" value="true"/>
+          <property name="suppressLoadErrors" value="true"/>
+        </module>
+
+        <module name="JavadocStyle"/>
+        <module name="JavadocType">
+          <property name="scope" value="package"/>
+          <property name="authorFormat" value="\S"/>
+          <property name="versionFormat" value="\$Revision.*\$"/>
+        </module>
+        <module name="JavadocVariable">
+          <property name="scope" value="package"/>
+        </module>
+
+        <module name="ConstantName">
+          <property name="format"
+              value="^(s_[a-z][a-zA-Z0-9]*)|([A-Z][A-Z0-9_]*)$"/>
+        </module>
+        <module name="LocalFinalVariableName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName">
+          <property name="format" value="^m_[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <module name="MethodName"/>
+        <module name="PackageName"/>
+        <module name="ParameterName"/>
+        <module name="StaticVariableName">
+          <property name="format" value="^s_[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <module name="TypeName"/>
+
+        <module name="AvoidStarImport"/>
+        <module name="IllegalImport"/>
+
+        <!-- Doesn't support sorting by package depth first.
+        <module name="ImportOrder">
+          <property name="caseSensitive" value="false"/>
+          <property name="groups" value="java,javax,org"/>
+          <property name="ordered" value="true"/>
+          <property name="separated" value="false"/>
+        </module>
+        -->
+        <!-- If you import a class, this moans if you also import one of its
+             nested classes. -->
+        <!--
+        <module name="RedundantImport"/>
+         -->
+        <module name="UnusedImports"/>
+
+        <!-- Aim to reduce non-default maxima over time. -->
+        <module name="AnonInnerLength">
+          <property name="max" value="50"/>
+        </module>
+        <module name="ExecutableStatementCount">
+          <property name="max" value="200"/>
+        </module>
+        <module name="FileLength"/>
+        <module name="LineLength">
+           <property name="ignorePattern" value="^import"/>
+        </module>
+        <module name="MethodLength">
+          <property name="tokens" value="METHOD_DEF"/>
+          <property name="max" value="250"/>
+        </module>
+        <module name="MethodLength">
+          <property name="tokens" value="CTOR_DEF"/>
+          <property name="max" value="300"/>
+        </module>
+        <module name="ParameterNumber">
+          <property name="max" value="9"/>
+        </module>
+
+        <module name="EmptyForInitializerPad"/>
+        <module name="EmptyForIteratorPad"/>
+        <module name="MethodParamPad"/>
+        <module name="NoWhitespaceAfter">
+          <property name="tokens"
+                    value="BNOT,DEC,DOT,INC,LNOT,UNARY_MINUS,UNARY_PLUS"/>
+        </module>
+        <module name="NoWhitespaceBefore"/>
+
+        <module name="OperatorWrap">
+          <property name="option" value="eol"/>
+        </module>
+
+        <module name="ParenPad"/>
+        <module name="TabCharacter"/>
+        <module name="TypecastParenPad"/>
+        <module name="WhitespaceAfter">
+          <property name="tokens" value="COMMA,SEMI"/>
+        </module>
+
+        <!--  TODO - Commenting this for generics, figure out what's right.
+        <module name="WhitespaceAround"/>
+        -->
+
+        <module name="ModifierOrder"/>
+
+        <!-- Sadly Checkstyle 3.2 has made this stricter such that
+        methods in final classes can't be declared final. No way to
+        select the older, less strict approach. --> <module
+        name="RedundantModifier"/>
+
+        <module name="AvoidNestedBlocks"/>
+        <module name="EmptyBlock">
+          <property name="option" value="text"/>
+        </module>
+        <module name="LeftCurly"/>
+        <module name="NeedBraces"/>
+        <module name="RightCurly">
+          <property name="option" value="alone"/>
+        </module>
+
+        <module name="ArrayTrailingComma"/>
+        <module name="CovariantEquals"/>
+        <!-- Doesn't support my preferred "all static, then
+        non-static" rule. -->
+        <!-- <module name="DeclarationOrder"/> -->
+        <module name="DefaultComesLast"/>
+        <module name="DoubleCheckedLocking"/>
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+        <module name="FinalLocalVariable"/>
+        <module name="HiddenField"/>
+        <!-- May fix code for the following some day. -->
+        <!-- <module name="IllegalCatch"/> -->
+        <module name="IllegalInstantiation">
+          <property name="classes" value="java.lang.Boolean"/>
+        </module>
+        <module name="IllegalType">
+          <!-- The Linked* types also specify interface. -->
+          <property name="illegalClassNames" value="java.util.GregorianCalendar, java.util.Hashtable, java.util.HashSet, java.util.HashMap, java.util.ArrayList, java.util.TreeSet, java.util.TreeMap, java.util.Vector"/>
+        </module>
+        <module name="InnerAssignment"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="NestedIfDepth">
+          <property name="max" value="2"/>
+        </module>
+        <module name="NestedTryDepth"/>
+        <module name="PackageDeclaration"/>
+        <module name="ParameterAssignment"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="SuperClone"/>
+        <module name="SuperFinalize"/>
+        <module name="UnnecessaryParentheses"/>
+
+        <module name="FinalClass"/>
+        <module name="HideUtilityClassConstructor"/>
+        <module name="InterfaceIsType"/>
+        <module name="MutableException"/>
+        <module name="VisibilityModifier"/>
+
+        <!-- Many things fail these, but sometimes its useful to turn
+        on for review. -->
+        <!--
+        <module name="BooleanExpressionComplexity"/>
+        <module name="ClassDataAbstractionCoupling"/>
+        <module name="ClassFanOutComplexity"/>
+        <module name="CyclomaticComplexity"/>
+        <module name="NPathComplexity"/>
+        -->
+
+        <module name="ArrayTypeStyle"/>
+        <module name="GenericIllegalRegexp">
+            <property name="format" value="\s+$"/>
+            <property name="message" value="Line has trailing spaces."/>
+        </module>
+    <!-- One day:
+        <module name="GenericIllegalRegexp">
+            <property name="format" value="System\.out"/>
+            <property name="message" value="Direct access to stdout."/>
+        </module>
+        <module name="GenericIllegalRegexp">
+            <property name="format" value="System\.err"/>
+            <property name="message" value="Direct access to stderr."/>
+        </module>
+    -->
+        <!-- Not flexible enough to cope with my preferred
+    indentation. -->
+        <!-- <module name="Indentation">
+          <property name="basicOffset" value="2"/>
+        </module> -->
+        <module name="TodoComment">
+            <property name="format" value="TODO"/>
+        </module>
+        <module name="UpperEll"/>
+
+        <!-- I would like to use the following, but they require J2SE
+        1.4.1. Checkstyle bug 910892. -->
+        <!-- <module name="usage.OneMethodPrivateField"/> -->
+        <!-- <module name="usage.UnusedLocalVariable"/> -->
+        <!-- <module name="usage.UnusedParameter"/> -->
+        <!-- <module name="usage.UnusedPrivateField"/> -->
+        <!-- <module name="usage.UnusedPrivateMethod"/> -->
+
+        <!-- There are currently problems with multi-line headers and
+        RegexpHeader. -->
+        <!-- <module name="RegexpHeader"> -->
+        <!--  <property name="headerFile" value="${basedir}/etc/header.txt"/> -->
+        <!-- </module> -->
+
+
+        <!-- I disagree with the following... -->
+        <!-- <module name="AvoidInlineConditionals"/> -->
+        <!-- <module name="DesignForExtension"/> -->
+        <!-- <module name="ExplicitInitialization"/> -->
+        <!-- <module name="FallThrough"/> -->
+        <!-- <module name="FinalParameters"/> -->
+        <!-- <module name="MagicNumber"/> -->
+        <!-- <module name="MissingCtor"/> -->
+        <!-- <module name="RedundantThrows"/> -->
+        <!-- <module name="RequireThis"/> -->
+        <!-- <module name="ReturnCount"/> -->
+        <!-- <module name="ThrowsCount"/> -->
+        <!-- <module name="TrailingComment"/> -->
+        <!-- <module name="UncommentedMain"/> -->
+
+    </module>
+
+</module>
+

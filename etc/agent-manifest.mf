@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Created-By: The Grinder build
+Premain-Class: net.grinder.util.weave.agent.ExposeInstrumentation
+Can-Redefine-Classes: true
+

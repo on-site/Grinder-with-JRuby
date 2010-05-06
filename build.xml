@@ -1,0 +1,870 @@
+<?xml version="1.0" encoding='ISO-8859-1'?>
+<!--
+
+"How to build the Grinder" by Philip Aston.
+
+Introduction
+============
+
+Ant
+===
+
+The Grinder build system is based on Jakarta Ant 1.6.2.
+
+Ant is a very handy tool that uses a build file written in XML (this
+file) as building instructions. For more information refer to
+"http://ant.apache.org/".
+
+
+What do I need?
+===============
+
+As well as Ant, to build The Grinder you need a version of Java that supports:
+
+  - Java SE 6.0 ("Java 6") or later
+
+(Java SE 6.0 is required by the new instrumentation engine introduced in The
+Grinder 3.3. If you are not using this feature, Java SE 5.0 is sufficient at
+runtime).
+
+The following additional packages are necessary to build and run The Grinder.
+They are bundled in the lib directory:
+
+  - Apache XMLBeans 2.1.0
+  - Jython 2.2.1
+  - PicoContainer 1.3
+  - ASM 3.2
+
+The following optional packages are necessary to run The Grinder unit
+tests, reports, and release process.
+
+  - JUnit 3.8.1
+  - Checkstyle 4.4
+  - Clover 2.0.3
+  - svnant 1.0.0
+
+  (You might not need these exact versions).
+
+If you are using svnant and have Cygwin svn installed, ensure you put
+the javahl library in your PATH. Otherwise svnant will pass Cygwin svn
+MS Windows paths, which it won't like.
+
+
+What do I do?
+=============
+
+Do the following:
+
+  1. Acquire and install Ant (http://ant.apache.org/index.html).
+
+  2. Set/export ANT_HOME, JAVA_HOME and PATH as described
+     in the Ant user guide.
+
+  3. Type ant (or ant.bat on Windows platforms)
+
+Say
+  ant -projecthelp
+
+for details of other targets. The compilation targets don't depend on
+the "clean" target, to rebuild you need to say "ant clean compile".
+
+The build auto-detects what modules to build by checking your
+CLASSPATH and paths defined in the file etc/localpaths.properties for
+classes the module depends on. You may have to modify
+etc/localpaths.properties or unset your CLASSPATH if this doesn't do
+what you want. Currently the conditionally built modules are:
+
+   JUnit test cases (Needs JUnit)
+   XMLBeans compilation (Needs XMLBeans)
+-->
+
+<project name="The Grinder" default="jar" basedir=".">
+
+  <property name="Name" value="The Grinder"/>
+  <property name="name" value="grinder"/>
+  <property name="version" value="3.4"/>			 <!-- AND THE NEXT LINE -->
+  <property name="release.tag" value="release_3_4"/>
+
+  <property name="year" value="2010"/>
+
+  <!-- local settings -->
+  <property file="etc/localpaths.properties"/>
+
+  <!-- javac switches -->
+  <property name="debug" value="on"/>
+  <property name="optimize" value="on"/>
+  <property name="deprecation" value="on"/>
+
+  <!-- source of all evil -->
+  <property name="src.dir" value="src"/>
+  <property name="test-src.dir" value="tests-src"/>
+  <property name="etc.dir" value="etc"/>
+  <property name="examples.dir" value="examples"/>
+  <property name="contrib.dir" value="contrib"/>
+  <property name="export-to-doc-build.dir"
+            value="${grinder-doc.dir}/imported"/>
+
+  <property name="svn.url"
+            value="https://grinder.svn.sourceforge.net/svnroot/grinder"/>
+
+  <!-- output -->
+  <!-- classes.dir is calcuated in init. -->
+  <property name="build.dir" value="${basedir}/build/ant"/>
+  <property name="test-classes.dir" value="${build.dir}/tests-classes"/>
+  <property name="junit-report.dir" value="${build.dir}/junit"/>
+  <property name="lib.dir" value="lib"/>
+  <property name="dist.root" value="${build.dir}/distribution"/>
+  <property name="dist.dir" value="${dist.root}/${name}-${version}"/>
+  <property name="clover.dir" value="clover"/>
+  <property name="lasttest.timestamp" value="last-test-run.timestamp"/>
+  <property name="release.dir" value="releases"/>
+  <property name="doc.dir" value="docs"/>
+  <property name="xmlbeans.jar" value="${lib.dir}/grinder-xmlbeans.jar"/>
+
+  <!-- javadoc -->
+  <property name="javadoc.dir" value="${doc.dir}/javadoc"/>
+  <property name="cloverdoc.dir" value="${doc.dir}/clover"/>
+  <property name="javadoc.css" value="${etc.dir}/javadoc.css"/>
+  <property name="package-lists.dir" value="${etc.dir}/packagelists"/>
+
+  <!-- distribution and packaging patternsets -->
+  <patternset id="sources.patternset">
+    <include name="build.xml"/>
+    <include name="ChangeLog"/>
+    <include name="${src.dir}/**"/>
+    <include name="${test-src.dir}/**"/>
+    <include name="${etc.dir}/**"/>
+    <include name="${javadoc.dir}/**"/>
+    <exclude name="**/.xvpics/**"/>
+    <exclude name="**/prj.el"/>
+    <exclude name="*.orig"/>
+    <exclude name="*.rej"/>
+    <exclude name="${etc.dir}/*.sh"/>
+    <exclude name="${etc.dir}/*.pl"/>
+    <exclude name="${etc.dir}/*Unit Test.log"/>
+  </patternset>
+
+  <patternset id="lib.patternset">
+    <include name="${lib.dir}/*.jar"/>
+  </patternset>
+
+  <patternset id="examples.patternset">
+    <include name="${examples.dir}/**"/>
+    <exclude name="**/log/**"/>
+    <exclude name="**/*.class"/>
+    <exclude name="**/cachedir"/>
+    <include name="${etc.dir}/*.xsl"/>
+  </patternset>
+
+  <patternset id="contrib.patternset">
+    <include name="${contrib.dir}/**"/>
+  </patternset>
+
+  <patternset id="development-notes.patternset">
+    <include name="TODO"/>
+  </patternset>
+
+  <patternset id="release-notes.patternset">
+    <include name="AUTHORS"/>
+    <include name="CHANGES"/>
+    <include name="LICENSE*"/>
+    <include name="README"/>
+  </patternset>
+
+  <patternset id="agent-classes.patternset">
+    <include name="net/grinder/util/weave/agent/*"/>
+  </patternset>
+
+  <!-- =================================================================== -->
+  <!-- Initialization target                                               -->
+  <!-- =================================================================== -->
+  <target name="init" depends="bundle-libraries">
+    <tstamp/>
+
+    <mkdir dir="${build.dir}"/>
+    <record name="${build.dir}/build.log" loglevel="verbose" append="false"/>
+
+    <!-- Separate clover instrumented classes. -->
+    <condition property="classes.dir" value="${build.dir}/classes">
+      <not><isset property="with.clover"/></not>
+    </condition>
+
+    <condition property="classes.dir" value="${build.dir}/clover-classes">
+      <isset property="with.clover"/>
+    </condition>
+
+    <echo message="** Building ${Name} ${version} on ${TODAY} **"/>
+
+    <path id="jython.classpath">
+      <pathelement path="${lib.dir}/jython.jar"/>
+    </path>
+
+    <path id="asm.classpath">
+      <!-- Must use fileset, pathelement doesn't accept wildcards. -->
+      <fileset dir="${lib.dir}">
+        <include name="asm*.jar"/>
+      </fileset>
+    </path>
+
+    <path id="picocontainer.classpath">
+      <!-- Must use fileset, pathelement doesn't accept wildcards. -->
+      <fileset dir="${lib.dir}">
+        <include name="picocontainer-*.jar"/>
+      </fileset>
+    </path>
+
+    <path id="xmlbeans.classpath">
+      <pathelement path="${lib.dir}/xbean.jar"/>
+      <pathelement path="${lib.dir}/jsr173_1.0_api.jar"/>
+    </path>
+
+    <path id="build.classpath">
+      <pathelement path="${classes.dir}"/>
+      <path refid="asm.classpath"/>
+      <path refid="jython.classpath"/>
+      <path refid="picocontainer.classpath"/>
+      <path refid="xmlbeans.classpath"/>
+      <pathelement path="${xmlbeans.jar}"/>
+    </path>
+
+    <path id="clover.classpath">
+      <pathelement path="${clover.home}/lib/clover.jar"/>
+    </path>
+
+    <path id="svnant.classpath">
+      <pathelement path="${svnant.home}/lib/svnant.jar"/>
+      <pathelement path="${svnant.home}/lib/svnClientAdapter.jar"/>
+      <pathelement path="${svnant.home}/lib/svnjavahl.jar"/>
+    </path>
+
+    <!-- options -->
+    <available classpathref="build.classpath"
+               classname="com.sun.net.ssl.HostnameVerifier"
+               property="have.jsse" />
+
+    <available classpathref="build.classpath"
+               classname="junit.framework.TestCase"
+               property="have.junit" />
+
+    <available classpathref="build.classpath"
+               classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
+               property="have.optional.tasks" />
+
+    <available file="${grinder-doc.dir}/build.xml"
+               property="have.grinder-doc-build"/>
+
+    <available classpathref="svnant.classpath"
+               resource="svntask.properties"
+               property="have.svnant"/>
+
+    <!-- filter tokens -->
+    <filter token="version" value="${version}"/>
+    <filter token="date" value="${TODAY}"/>
+
+    <mkdir dir="${clover.dir}"/>
+    <mkdir dir="${lib.dir}"/>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Useful assertions                                                   -->
+  <!-- =================================================================== -->
+  <target name="assert-have-junit" depends="init" unless="have.junit">
+    <fail message="Add JUnit 3.8.1 to your CLASSPATH to build this target"/>
+  </target>
+
+  <target name="assert-have-optional-tasks" depends="init"
+    unless="have.optional.tasks">
+    <fail message="Install the Ant optional.jar to build this target"/>
+  </target>
+
+  <target name="assert-have-grinder-doc-build" depends="init" unless="have.grinder-doc-build">
+    <fail message="To build this target, edit etc/localpaths.properties and set grinder-doc.dir to a valid grinder documentation build"/>
+  </target>
+
+  <target name="assert-have-svnant" depends="init" unless="have.svnant">
+    <fail message="To build this target, edit etc/localpaths.properties and set svnant.home to a valid svnant installation"/>
+  </target>
+
+  <target name="assert-have-everything"
+    depends="assert-have-junit,assert-have-optional-tasks">
+  </target>
+
+  <target name="bundle-libraries">
+    <copy todir="${lib.dir}" failonerror="false" verbose="true">
+      <fileset dir="${jython.dir}" includes="jython.jar"/>
+
+      <fileset dir="${asm.dir}/lib">
+        <include name="asm-*.jar"/>
+        <exclude name="*analysis*.jar"/>
+        <exclude name="*commons*.jar"/>
+        <exclude name="*tree*.jar"/>
+        <exclude name="*util*.jar"/>
+        <exclude name="*xml*.jar"/>
+      </fileset>
+
+      <fileset dir="${picocontainer.dir}">
+        <include name="picocontainer-*.jar"/>
+        <exclude name="*sources.jar"/>
+      </fileset>
+
+      <fileset dir="${xmlbeans.dir}/lib">
+        <include name="xbean.jar"/>
+        <include name="jsr173_1.0_api.jar"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Copy resources into the classes hierarchy, and bundled libraries.    -->
+  <!-- =================================================================== -->
+
+  <target name="copy-resources"
+    depends="init"
+    description="Copies the resource files into build output">
+
+    <copy todir="${classes.dir}">
+      <fileset dir="${src.dir}"  includes="**/resources/*.gif"/>
+      <fileset dir="${src.dir}"  includes="**/resources/*.keystore"/>
+      <fileset dir="${src.dir}"  includes="**/resources/*.png"/>
+      <fileset dir="${src.dir}"  includes="**/resources/*.xsl"/>
+    </copy>
+
+    <copy todir="${classes.dir}" filtering="on">
+      <fileset dir="${src.dir}">
+        <include name="**/resources/*.html"/>
+        <include name="**/resources/*.properties*"/>
+        <include name="**/resources/*.txt"/>
+      </fileset>
+    </copy>
+
+    <copy todir="${test-classes.dir}">
+      <fileset dir="${test-src.dir}" includes="**/data/*"/>
+      <fileset dir="${test-src.dir}" includes="**/resources/*"/>
+    </copy>
+
+    <copy todir="${test-classes.dir}" filtering="on">
+      <fileset dir="${test-src.dir}" includes="**/*.properties"/>
+    </copy>
+
+    <copy todir="${etc.dir}" flatten="true">
+      <fileset dir="${src.dir}"  includes="**/resources/*.xsl"/>
+    </copy>
+
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Compilation rules                                    -->
+  <!-- =================================================================== -->
+
+  <fileset id="xmlbeans.src.fileset" dir="${etc.dir}">
+    <include name="**/*.xsd"/>
+    <include name="**/*.xsdconfig"/>
+  </fileset>
+
+  <target name="check.xmlbeans.uptodate" depends="init">
+    <uptodate property="xmlbeans.uptodate" targetfile="${xmlbeans.jar}">
+      <srcfiles refid="xmlbeans.src.fileset"/>
+    </uptodate>
+  </target>
+
+  <target name="compile-xmlbeans"
+    depends="init,check.xmlbeans.uptodate"
+    description="Compiles our XML schemas to XMLBeans"
+    unless="xmlbeans.uptodate">
+
+    <taskdef name="xmlbean"
+             classname="org.apache.xmlbeans.impl.tool.XMLBean"
+             classpathref="xmlbeans.classpath"/>
+
+    <property name="xmlbeans-build.dir" value="${build.dir}/xmlbeans"/>
+    <delete dir="${xmlbeans-build.dir}"/>
+
+    <xmlbean
+      classgendir="${xmlbeans-build.dir}"
+      srcgendir="${xmlbeans-build.dir}/src"
+      classpathref="xmlbeans.classpath"
+      destfile="${xmlbeans.jar}"
+      debug="${debug}"
+      optimize="${optimize}">
+      <fileset refid="xmlbeans.src.fileset"/>
+    </xmlbean>
+  </target>
+
+  <target name="compile" depends="init,compile-xmlbeans"
+    description="Compiles the source.">
+    <mkdir dir="${classes.dir}"/>
+
+    <echo message="Compiling third party code, ignore deprecation warnings..."/>
+
+    <javac srcdir="${src.dir}"
+           destdir="${classes.dir}"
+           debug="${debug}"
+           optimize="${optimize}"
+           source="1.5"
+           target="1.5"
+           deprecation="false"> <!-- Uses deprecated API's -->
+       <classpath refid="build.classpath"/>
+       <exclude name="net/grinder/**"/>
+    </javac>
+
+    <echo message="... third party code compiled."/>
+
+    <javac srcdir="${src.dir}"
+           destdir="${classes.dir}"
+           debug="${debug}"
+           optimize="${optimize}"
+           deprecation="${deprecation}"
+           source="1.5"
+           target="1.5">
+       <include name="net/grinder/**"/>
+       <classpath refid="build.classpath"/>
+    </javac>
+  </target>
+
+  <target name="compile-tests"
+    depends="assert-have-junit,compile"
+    description="Compiles the tests source">
+    <mkdir dir="${test-classes.dir}"/>
+
+    <javac srcdir="${test-src.dir}"
+           destdir="${test-classes.dir}"
+           debug="${debug}"
+           optimize="${optimize}"
+           source="1.5"
+           deprecation="${deprecation}">
+       <classpath refid="build.classpath"/>
+   </javac>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Creates the jars                                                    -->
+  <!-- =================================================================== -->
+  <target name="jar" depends="compile, copy-resources"
+          description="Default target, creates lib/grinder.jar.">
+
+    <!-- Include the net.grinder.util.weave.agent files in the main jar so
+         its classes can be loaded if the agent is not loaded. -->
+    <jar jarfile="${lib.dir}/${name}.jar"
+         basedir="${classes.dir}"
+         manifest="etc/grinder-manifest.mf"
+         filesonly="true"/>
+
+    <jar jarfile="${lib.dir}/${name}-agent.jar"
+         basedir="${classes.dir}"
+         manifest="etc/agent-manifest.mf"
+         filesonly="true">
+      <patternset refid="agent-classes.patternset"/>
+    </jar>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Reports                                                             -->
+  <!-- =================================================================== -->
+  <target name="checkstyle" description="Check code formatting.">
+
+    <taskdef resource="checkstyletask.properties">
+      <classpath>
+        <pathelement path="${checkstyle.classpath}"/>
+      </classpath>
+    </taskdef>
+
+    <mkdir dir="${build.dir}"/>
+
+    <checkstyle config="etc/checkstyle.xml">
+      <fileset dir="${src.dir}">
+        <include name="net/grinder/**/*.java"/>
+        <!-- <include name="net/grinder/**/*.properties"/> -->
+      </fileset>
+
+      <property key="checkstyle.cache.file"
+                file="${build.dir}/checkstyle.cache"/>
+      <property key="checkstyle.suppressions.file"
+                file="${etc.dir}/checkstyle-suppressions.xml"/>
+
+      <formatter type="plain"/>
+      <formatter type="xml" toFile="${build.dir}/checkstyle_errors.xml"/>
+    </checkstyle>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Rules to run the tests                                              -->
+  <!-- =================================================================== -->
+  <target name="test"
+    depends="assert-have-optional-tasks,compile-tests,copy-resources,jar"
+    description="Run the unit-tests.">
+
+    <path id="test.classpath">
+      <pathelement path="${test-classes.dir}"/>
+      <path refid="clover.classpath"/>
+      <path refid="build.classpath"/>
+    </path>
+
+    <mkdir dir="${junit-report.dir}"/>
+
+    <junit printsummary="false" haltonfailure="true">
+      <classpath>
+      <path refid="test.classpath"/>
+      </classpath>
+
+      <!-- Put Jython droppings in one place. -->
+      <sysproperty key="python.cachedir" path="${build.dir}/python.cache"/>
+
+      <!-- Things the tests find useful. -->
+      <sysproperty key="classes.dir" path="${classes.dir}"/>
+      <sysproperty key="test-classes.dir" path="${test-classes.dir}"/>
+
+      <sysproperty key="grinder.version" value="${version}"/>
+      <sysproperty key="grinder.date" value="${TODAY}"/>
+
+      <sysproperty key="jython21.dir" value="/opt/jython/jython-2.1"/>
+      <sysproperty key="jython25.dir" value="/opt/jython/jython2.5.0"/>
+
+      <!-- Enable assertions. -->
+      <jvmarg line="-ea"/>
+
+      <jvmarg line="-javaagent:${lib.dir}/grinder-agent.jar"/>
+
+      <!-- Fork separate JVM's for tests to avoid OOMEs when running
+      with Clover. -->
+      <batchtest fork="true" todir="${junit-report.dir}">
+        <formatter type="plain" usefile="false"/>
+        <formatter type="xml" usefile="true"/>
+
+        <fileset dir="${test-src.dir}">
+          <depend targetdir="${build.dir}">
+            <mapper type="merge" to="${lasttest.timestamp}"/>
+          </depend>
+          <include name="**/Test*.java"/>
+
+          <exclude name="**/TestSleeper.java"/>
+        </fileset>
+      </batchtest>
+
+      <!-- Fork a separate JVM for the Sleeper test to make the timings
+      more consistent. -->
+      <batchtest fork="true" todir="${junit-report.dir}">
+        <formatter type="plain" usefile="false"/>
+        <formatter type="xml" usefile="true"/>
+
+        <fileset dir="${test-src.dir}">
+          <depend targetdir="${build.dir}">
+            <mapper type="merge" to="${lasttest.timestamp}"/>
+          </depend>
+          <include name="**/TestSleeper.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+
+    <touch file="${build.dir}/${lasttest.timestamp}"/>
+  </target>
+
+  <target name="clover">
+    <taskdef resource="cloverlib.xml" classpathref="clover.classpath"/>
+
+    <clover-setup initstring="${clover.dir}/coverage.db">
+      <fileset dir="${src.dir}">
+       <include name="net/grinder/**"/>
+      </fileset>
+      <fileset dir="${test-src.dir}"/>
+    </clover-setup>
+
+    <property name="with.clover" value="true"/>
+  </target>
+
+  <target name="clover-html" depends="clover">
+    <clover-report>
+      <current outfile="${cloverdoc.dir}">
+        <format type="html"/>
+        <testsources dir="${test-src.dir}"/>
+        <testresults dir="${junit-report.dir}"/>
+      </current>
+    </clover-report>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Rules to create the documentation                               -->
+  <!-- =================================================================== -->
+
+  <target name="project-xml"
+          depends="init,assert-have-grinder-doc-build"
+          description="Generates the project XML files for a documentation build.">
+
+    <property name="xml-output.dir"
+              value="${export-to-doc-build.dir}/project-xml"/>
+
+    <delete>
+      <fileset dir="${xml-output.dir}">
+        <exclude name="**/.svn"/>
+        <exclude name="**/.svn/**"/>
+      </fileset>
+    </delete>
+
+    <java classname="org.python.util.jython" logError="true"
+      output="${xml-output.dir}/changes.xml">
+
+      <sysproperty key="python.home" path="${jython.dir}"/>
+      <classpath refid="jython.classpath"/>
+
+      <arg path="${etc.dir}/changes2xml.py"/>
+      <arg value="CHANGES"/>
+    </java>
+
+    <java classname="org.python.util.jython" logError="true"
+      output="${xml-output.dir}/todo.xml">
+
+      <sysproperty key="python.home" path="${jython.dir}"/>
+      <classpath refid="jython.classpath"/>
+
+      <arg path="${etc.dir}/outline2xml.py"/>
+      <arg value="TODO"/>
+    </java>
+
+    <java classname="org.python.util.jython" logError="true"
+      output="${xml-output.dir}/scripts.xml">
+
+      <sysproperty key="python.home" path="${jython.dir}"/>
+      <classpath refid="jython.classpath"/>
+
+      <arg path="${etc.dir}/scripts2XML.py"/>
+      <arg value="examples/helloworld.py"/>
+      <arg value="examples/http.py"/>
+      <arg value="examples/scenario.py"/>
+      <arg value="examples/fba.py"/>
+      <arg value="examples/digestauthentication.py"/>
+      <arg value="examples/cookies.py"/>
+      <arg value="examples/form.py"/>
+      <arg value="examples/ejb.py"/>
+      <arg value="examples/jdbc.py"/>
+      <arg value="examples/amazon.py"/>
+      <arg value="examples/jaxrpc.py"/>
+      <arg value="examples/xml-rpc.py"/>
+      <arg value="examples/helloworldfunctions.py"/>
+      <arg value="examples/scriptlifecycle.py"/>
+      <arg value="examples/statistics.py"/>
+      <arg value="examples/jmssender.py"/>
+      <arg value="examples/jmsreceiver.py"/>
+      <arg value="examples/httpunit.py"/>
+      <arg value="examples/email.py"/>
+      <arg value="examples/sequence.py"/>
+      <arg value="examples/parallel.py"/>
+      <arg value="examples/threadrampup.py"/>
+    </java>
+
+  </target>
+
+  <target name="javadoc" depends="init" description="Generates the javadoc.">
+    <mkdir dir="${javadoc.dir}"/>
+    <javadoc packagenames="net.grinder.*"
+             destdir="${javadoc.dir}"
+             author="true"
+             version="false"
+             use="false"
+             noindex="false"
+             windowtitle="${Name}"
+             doctitle="${Name}"
+             bottom="Copyright &#169; ${year} Paco Gómez, Philip Aston. All Rights Reserved."
+             stylesheetfile="${javadoc.css}"
+             source="1.5"
+             package="true">
+      <sourcepath>
+        <pathelement path="${src.dir}"/>
+      </sourcepath>
+      <classpath>
+        <path refid="build.classpath"/>
+        <pathelement path="${java.class.path}"/>
+      </classpath>
+      <link offline="true"
+            href="http://java.sun.com/j2se/1.5/docs/api/"
+            packagelistLoc="${package-lists.dir}/jdk1.5"/>
+    </javadoc>
+  </target>
+
+  <target name="script-javadoc" depends="init,assert-have-grinder-doc-build"
+          description="Generates the script javadoc for a documentation build.">
+
+    <property name="script-javadoc-src.dir"
+        value="${build.dir}/script-javadoc-src"/>
+
+    <!-- Sigh, I'm tired of convincing the javadoc task to do the right thing
+         so instead let's create a copy of the source it should process.
+         This is faster too. -->
+    <copy todir="${script-javadoc-src.dir}">
+      <fileset dir="${src.dir}">
+        <include name="HTTPClient/*.java"/>
+        <exclude name="HTTPClient/HttpURLConnection.java"/>
+        <include name="net/grinder/common/AbstractTestSemantics.java"/>
+        <include name="net/grinder/common/FilenameFactory.java"/>
+        <include name="net/grinder/common/GrinderBuild.java"/>
+        <include name="net/grinder/common/GrinderException.java"/>
+        <include name="net/grinder/common/GrinderProperties.java"/>
+        <include name="net/grinder/common/Logger.java"/>
+        <include name="net/grinder/common/SSLContextFactory.java"/>
+        <include name="net/grinder/common/Test.java"/>
+        <include name="net/grinder/plugin/http/*.java"/>
+        <exclude name="net/grinder/plugin/http/HTTPPlugin.java"/>
+        <exclude name="net/grinder/plugin/http/HTTPPluginThreadState.java"/>
+        <exclude name="net/grinder/plugin/http/HTTPPluginTCPProxy*.java"/>
+        <include name="net/grinder/script/*.java"/>
+        <exclude name="net/grinder/script/InternalScriptContext.java"/>
+        <exclude name="net/grinder/script/TestRegistry.java"/>
+        <include name="**/*.html"/>
+      </fileset>
+    </copy>
+
+    <property name="script-javadoc-output.dir"
+              value="${export-to-doc-build.dir}/script-javadoc"/>
+
+    <delete>
+      <fileset dir="${script-javadoc-output.dir}">
+        <exclude name="**/.svn"/>
+        <exclude name="**/.svn/**"/>
+      </fileset>
+    </delete>
+
+    <javadoc destdir="${script-javadoc-output.dir}"
+             packagenames="net.grinder.*,HTTPClient.*"
+             author="true"
+             version="false"
+             use="false"
+             noindex="false"
+             windowtitle="${Name}"
+             doctitle="${Name}"
+             stylesheetfile="${javadoc.css}"
+             protected="true"
+             overview="${script-javadoc-src.dir}/net/grinder/script/overview.html"
+             source="1.5"
+             sourcepath="${script-javadoc-src.dir}">
+        <group title="The Grinder Scripting API"
+               packages="net.grinder.common,net.grinder.script,net.grinder.statistics"/>
+        <group title="HTTP Plug-in"
+               packages="net.grinder.plugin.http,HTTPClient"/>
+        <link offline="true"
+              href="http://java.sun.com/j2se/1.5/docs/api/"
+              packagelistLoc="${package-lists.dir}/jdk1.5"/>
+    </javadoc>
+  </target>
+
+  <target name="release-documentation"
+          depends="init,assert-have-grinder-doc-build,project-xml,script-javadoc"
+          description="Update separate documentation build, run it.">
+
+    <ant dir="${grinder-doc.dir}" target="release" inheritAll="false"/>
+
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Packages the distribution as .zip                                   -->
+  <!-- =================================================================== -->
+  <target name="do-dist">
+
+    <zip zipfile="${zip.prefix}.zip">
+      <zipfileset dir="." prefix="${name}-${version}/">
+        <patternset refid="lib.patternset"/>
+        <patternset refid="examples.patternset"/>
+        <patternset refid="contrib.patternset"/>
+        <patternset refid="release-notes.patternset"/>
+      </zipfileset>
+    </zip>
+
+    <zip zipfile="${zip.prefix}-src.zip">
+      <zipfileset dir="." prefix="${name}-${version}/">
+        <patternset refid="sources.patternset"/>
+        <patternset refid="release-notes.patternset"/>
+        <patternset refid="development-notes.patternset"/>
+      </zipfileset>
+    </zip>
+  </target>
+
+  <target name="all" depends="assert-have-everything,jar,checkstyle"/>
+
+  <target name="dist" depends="all" description="Generates distribution.">
+    <antcall target="do-dist">
+      <param name="zip.prefix" value="${name}-pre-${version}-${DSTAMP}"/>
+    </antcall>
+  </target>
+
+  <target name="svn-init" depends="init,assert-have-svnant">
+    <!-- svn-init exists to ensure we do the taskdef only once, otherwise
+         javahl is not found after the second taskdef. -->
+    <taskdef resource="svntask.properties" classpathref="svnant.classpath"/>
+  </target>
+
+  <target name="svn-diff" depends="svn-init">
+    <tempfile property="temp.file" prefix="svndiff"/>
+
+    <svn>
+      <diff oldTargetRevision="HEAD"
+      outFile="${temp.file}"/>
+    </svn>
+
+    <concat>
+      <fileset file="${temp.file}"/>
+    </concat>
+
+    <delete file="${temp.file}"/>
+  </target>
+
+  <target name="svn-tag" depends="svn-init">
+    <svn>
+      <copy srcUrl="${svn.url}/trunk/"
+            destUrl="${svn.url}/tags/${release.tag}/"
+            message="Tag ${release.tag}"/>
+    </svn>
+  </target>
+
+  <target name="release" depends="realclean,all,checkstyle,test,javadoc,release-documentation,svn-init" description="Generates a release.">
+
+    <echo message="Running svn diff"/>
+    <antcall target="svn-diff"/>
+
+    <echo message=""/>
+    <echo message=""/>
+    <echo message="****************************************************"/>
+    <echo message="*** Is there any diff output above?              ***"/>
+    <echo message="*** Did you update the ChangeLog, CHANGES, etc?  ***"/>
+    <echo message="****************************************************"/>
+    <echo message=""/>
+
+    <input message="Continue? " validargs="y,n" addproperty="do.release"/>
+
+    <condition property="do.abort">
+      <equals arg1="n" arg2="${do.release}"/>
+    </condition>
+
+    <fail if="do.abort">Build aborted by user.</fail>
+
+    <echo message="Tagging the repository"/>
+    <antcall target="svn-tag"/>
+
+    <echo message="Building release"/>
+    <mkdir dir="${release.dir}"/>
+
+    <antcall target="do-dist">
+      <param name="zip.prefix" value="${release.dir}/${name}-${version}"/>
+    </antcall>
+  </target>
+
+  <!-- =================================================================== -->
+  <!-- Clean targets                                                       -->
+  <!-- =================================================================== -->
+
+  <!-- Doesn't depend on init, or it will undo directories created there -->
+  <target name="clean" description="Removes class files.">
+    <delete dir="${build.dir}"/>
+  </target>
+
+  <target name="realclean" depends="clean"
+    description="Removes all generated files and temporary files.">
+    <delete dir="${dist.root}"/>
+    <delete dir="${javadoc.dir}" quiet="true"/>
+    <delete dir="${cloverdoc.dir}" quiet="true"/>
+    <delete dir="${lib.dir}"/>
+    <delete>
+      <fileset dir="." includes="**/*~" defaultexcludes="false"/>
+    </delete>
+
+  </target>
+
+</project>
+
+<!-- End of file -->

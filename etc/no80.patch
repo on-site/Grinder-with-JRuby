@@ -1,0 +1,35 @@
+
+
+Index:
+src/net/grinder/tools/tcpproxy/HTTPMethodAbsoluteURIFilterDecorator.java
+===================================================================
+RCS file:
+/work/cvs/src/grinder/src/net/grinder/tools/tcpproxy/HTTPMethodAbsoluteURIFi
+lterDecorator.java,v
+retrieving revision 1.1
+diff -u -a -u -r1.1 HTTPMethodAbsoluteURIFilterDecorator.java
+--- src/net/grinder/tools/tcpproxy/HTTPMethodAbsoluteURIFilterDecorator.java
+20 Nov 2003 18:39:45 -0000       1.1
++++ src/net/grinder/tools/tcpproxy/HTTPMethodAbsoluteURIFilterDecorator.java
+11 Dec 2003 08:10:40 -0000
+@@ -81,8 +81,18 @@
+   public HTTPMethodAbsoluteFilterDecorator(TCPProxyFilter delegate,
+                                            EndPoint remoteEndPoint) {
+     m_delegate = delegate;
+-    m_substitution =
+-      new Perl5Substitution("$1 http://" + remoteEndPoint + "$2");
++
++    if (remoteEndPoint.getPort() == 80) {
++      // Apparently Netscape-Proxy/3.53 can't cope with an explicit
++      // port 80 in the URL.
++      m_substitution =
++        new Perl5Substitution("$1 http://" + remoteEndPoint.getHost() + "$2");
++
++    }
++    else {
++      m_substitution =
++        new Perl5Substitution("$1 http://" + remoteEndPoint + "$2");      
++    }
+   }
+ 
+   /**
