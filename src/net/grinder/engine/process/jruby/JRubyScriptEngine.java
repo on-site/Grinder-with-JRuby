@@ -21,9 +21,17 @@
 
 package net.grinder.engine.process.jruby;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+
 import net.grinder.engine.common.EngineException;
 import net.grinder.engine.common.ScriptLocation;
 import net.grinder.engine.process.ScriptEngine;
+
+import org.jruby.Ruby;
+import org.jruby.runtime.Constants;
+import org.jruby.runtime.ThreadContext;
+import org.jruby.runtime.builtin.IRubyObject;
 
 
 /**
@@ -33,28 +41,71 @@ import net.grinder.engine.process.ScriptEngine;
  * @author Mike Stone
  */
 public final class JRubyScriptEngine implements ScriptEngine {
-    private String m_jrubyVersion = "1.4.1";
+    private static final String TEST_RUNNER_CLASS_NAME = "TestRunner";
+    private Ruby m_runtime;
+
+    public JRubyScriptEngine() throws EngineException {
+        m_runtime = Ruby.newInstance();
+    }
 
     @Override
     public void initialise(ScriptLocation script) throws EngineException {
+        m_runtime.setCurrentDirectory(script.getDirectory().getFile().getPath());
+
+        try {
+            m_runtime.runFromMain(new FileInputStream(script.getFile()), script.getFile().getPath());
+        } catch (FileNotFoundException e) {
+            throw new EngineException("Could not find script " + script.getFile().getPath());
+        }
+
+        if (!m_runtime.isClassDefined(TEST_RUNNER_CLASS_NAME)) {
+            throw new EngineException("There is no class defined named '" + TEST_RUNNER_CLASS_NAME + "' in " + script);
+        }
     }
 
     @Override
     public WorkerRunnable createWorkerRunnable() throws EngineException {
-        return null;
+        return new JRubyWorkerRunnable();
     }
 
     @Override
     public WorkerRunnable createWorkerRunnable(Object testRunner) throws EngineException {
-        return null;
+        if (testRunner instanceof IRubyObject) {
+            return new JRubyWorkerRunnable((IRubyObject) testRunner);
+        }
+
+        throw new EngineException("testRunner isn't a JRuby object");
     }
 
     @Override
     public void shutdown() throws EngineException {
+        m_runtime.evalScriptlet("exitfunc() if respond_to? :exitfunc");
     }
 
     @Override
     public String getDescription() {
-        return "JRuby " + m_jrubyVersion;
+        return "JRuby " + Constants.VERSION;
+    }
+
+    private class JRubyWorkerRunnable implements ScriptEngine.WorkerRunnable {
+        private IRubyObject m_testRunner;
+
+        private JRubyWorkerRunnable() throws EngineException {
+            m_testRunner = m_runtime.evalScriptlet(TEST_RUNNER_CLASS_NAME + ".new");
+        }
+
+        public JRubyWorkerRunnable(IRubyObject testRunner) throws EngineException {
+            m_testRunner = testRunner;
+        }
+
+        public void run() throws ScriptExecutionException {
+            // Does this need to be run in a new context...?
+            m_testRunner.callMethod(ThreadContext.newContext(m_runtime), "run");
+        }
+
+        public void shutdown() throws ScriptExecutionException {
+            // Let the GC deal with it in time.
+            m_testRunner = null;
+        }
     }
 }

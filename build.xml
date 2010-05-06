@@ -199,6 +199,10 @@ what you want. Currently the conditionally built modules are:
       <pathelement path="${lib.dir}/jython.jar"/>
     </path>
 
+    <path id="jruby.classpath">
+      <pathelement path="${lib.dir}/jruby*.jar"/>
+    </path>
+
     <path id="asm.classpath">
       <!-- Must use fileset, pathelement doesn't accept wildcards. -->
       <fileset dir="${lib.dir}">
@@ -222,6 +226,7 @@ what you want. Currently the conditionally built modules are:
       <pathelement path="${classes.dir}"/>
       <path refid="asm.classpath"/>
       <path refid="jython.classpath"/>
+      <path refid="jruby.classpath"/>
       <path refid="picocontainer.classpath"/>
       <path refid="xmlbeans.classpath"/>
       <pathelement path="${xmlbeans.jar}"/>
