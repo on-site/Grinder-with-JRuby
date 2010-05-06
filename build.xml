@@ -113,6 +113,7 @@ what you want. Currently the conditionally built modules are:
   <property name="test-classes.dir" value="${build.dir}/tests-classes"/>
   <property name="junit-report.dir" value="${build.dir}/junit"/>
   <property name="lib.dir" value="lib"/>
+  <property name="build.lib.dir" value="build-lib"/>
   <property name="dist.root" value="${build.dir}/distribution"/>
   <property name="dist.dir" value="${dist.root}/${name}-${version}"/>
   <property name="clover.dir" value="clover"/>
@@ -204,7 +205,7 @@ what you want. Currently the conditionally built modules are:
     </path>
 
     <path id="junit.classpath">
-      <pathelement path="${lib.dir}/junit.jar"/>
+      <pathelement path="${build.lib.dir}/junit.jar"/>
     </path>
 
     <path id="asm.classpath">
