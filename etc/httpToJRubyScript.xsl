@@ -43,6 +43,7 @@
 
     <xsl:text>
 
+net = Java::Net
 import net.grinder.script.Test
 import net.grinder.script.Grinder
 import net.grinder.plugin.http.HTTPPluginControl
@@ -72,53 +73,48 @@ end
 
     <xsl:value-of select="helper:newLine()"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:text># A TestRunner instance is created for each worker thread.</xsl:text>
+    <xsl:value-of select="helper:newLineAndIndent()"/>
     <xsl:text>class TestRunner</xsl:text>
     <xsl:value-of select="helper:changeIndent(1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>#A TestRunner instance is created for each worker thread.</xsl:text>
-    <xsl:value-of select="helper:newLine()"/>
 
     <xsl:apply-templates select="*" mode="TestRunner"/>
 
     <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:text># This method is called for every run performed by the worker thread.</xsl:text>
+    <xsl:value-of select="helper:newLineAndIndent()"/>
     <xsl:text>def run</xsl:text>
     <xsl:value-of select="helper:changeIndent(1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>#This method is called for every run performed by the worker thread.</xsl:text>
 
     <xsl:apply-templates select="*" mode="__call__"/>
 
     <xsl:if test="not(//g:request)">
-      <xsl:value-of select="helper:newLine()"/>
       <xsl:value-of select="helper:newLineAndIndent()"/>
       <xsl:text># Empty recording!</xsl:text>
-      <xsl:value-of select="helper:newLineAndIndent()"/>
-      <xsl:text>pass</xsl:text>
     </xsl:if>
 
-    <xsl:value-of select="helper:newLine()"/>
-
     <xsl:value-of select="helper:changeIndent(-1)"/>
-    <xsl:text>end</xsl:text>
-    <xsl:value-of select="helper:newLine()"/>
-    <xsl:value-of select="helper:changeIndent(-1)"/>
-    <xsl:text>end</xsl:text>
-    <xsl:value-of select="helper:newLine()"/>
-    <xsl:value-of select="helper:newLine()"/>
-
-    <xsl:text>def instrumentMethod(test, method_name, c=TestRunner):</xsl:text>
-    <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>"""Instrument a method with the given Test."""</xsl:text>
+    <xsl:text>end</xsl:text>
+    <xsl:value-of select="helper:newLine()"/>
+    <xsl:value-of select="helper:changeIndent(-1)"/>
+    <xsl:text>end</xsl:text>
+    <xsl:value-of select="helper:newLine()"/>
+    <xsl:value-of select="helper:newLine()"/>
+
+    <xsl:text># Instrument a method with the given Test.</xsl:text>
+    <xsl:value-of select="helper:newLine()"/>
+    <xsl:text>def instrument_method(test, method_name, c = TestRunner)</xsl:text>
+    <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
     <xsl:text>unadorned = getattr(c, method_name)</xsl:text>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>import new</xsl:text>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>method = new.instancemethod(test.wrap(unadorned), None, c)</xsl:text>
+    <xsl:text>method = new.instancemethod(test.wrap(unadorned), nil, c)</xsl:text>
     <xsl:value-of select="helper:newLineAndIndent()"/>
     <xsl:text>setattr(c, method_name, method)</xsl:text>
     <xsl:value-of select="helper:changeIndent(-1)"/>
+    <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:text>end</xsl:text>
     <xsl:value-of select="helper:newLine()"/>
 
     <xsl:apply-templates select="*" mode="instrumentMethod"/>
@@ -130,9 +126,9 @@ end
   <xsl:template match="g:base-uri" mode="file">
     <xsl:value-of select="helper:newLine()"/>
     <xsl:value-of select="concat(@uri-id, ' = ')"/>
-    <xsl:text>'</xsl:text>
+    <xsl:text>&quot;</xsl:text>
     <xsl:value-of select="concat(g:scheme, '://', g:host, ':', g:port)"/>
-    <xsl:text>'</xsl:text>
+    <xsl:text>&quot;</xsl:text>
 
     <xsl:if test="not(following::g:base-uri)">
       <xsl:value-of select="helper:newLine()"/>
@@ -142,7 +138,7 @@ end
 
   <xsl:template match="g:common-headers[@headers-id='defaultHeaders']" mode="file">
     <xsl:value-of select="helper:newLine()"/>
-    <xsl:text>connection_defaults.defaultHeaders = \</xsl:text>
+    <xsl:text>connection_defaults.defaultHeaders =</xsl:text>
     <xsl:call-template name="list"/>
     <xsl:value-of select="helper:newLine()"/>
   </xsl:template>
@@ -150,7 +146,7 @@ end
 
   <xsl:template match="g:common-headers" mode="file">
     <xsl:value-of select="helper:newLine()"/>
-    <xsl:value-of select="concat(@headers-id, '= \')"/>
+    <xsl:value-of select="concat(@headers-id, ' =')"/>
     <xsl:call-template name="list"/>
     <xsl:value-of select="helper:newLine()"/>
   </xsl:template>
@@ -194,22 +190,30 @@ end
     </xsl:for-each>
     <xsl:value-of select="helper:newLineAndIndent()"/>
     <xsl:value-of select="$request-name"/>
+    <xsl:text> = HTTPRequest.new</xsl:text>
 
-    <xsl:value-of select="concat(' = HTTPRequest(url=', g:uri/@extends)"/>
-    <xsl:value-of select="concat(', headers=', g:headers/@extends, ')')"/>
+    <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:value-of select="$request-name"/>
+    <xsl:text>.url = </xsl:text>
+    <xsl:value-of select="g:uri/@extends"/>
+
+    <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:value-of select="$request-name"/>
+    <xsl:text>.headers = </xsl:text>
+    <xsl:value-of select="g:headers/@extends"/>
 
     <xsl:if test="g:body/g:file">
       <xsl:value-of select="helper:newLineAndIndent()"/>
       <xsl:value-of select="$request-name"/>
-      <xsl:text>.setDataFromFile('</xsl:text>
+      <xsl:text>.setDataFromFile(&quot;</xsl:text>
       <xsl:value-of select="g:body/g:file"/>
-      <xsl:text>')</xsl:text>
+      <xsl:text>&quot;)</xsl:text>
     </xsl:if>
 
     <xsl:value-of select="helper:newLine()"/>
-    <xsl:value-of select="concat($request-name, ' = Test(')"/>
+    <xsl:value-of select="concat($request-name, ' = Test.new(')"/>
     <xsl:value-of select="concat($request-number, ', ')"/>
-    <xsl:value-of select="helper:quoteForPython(g:description)"/>
+    <xsl:value-of select="helper:quoteForRuby(g:description)"/>
     <xsl:value-of select="concat(').wrap(', $request-name, ')')"/>
 
     <xsl:value-of select="helper:newLine()"/>
@@ -267,7 +271,7 @@ end
     <xsl:if test="string(g:body/g:form/@multipart) = 'true'">
       <xsl:text>,</xsl:text>
       <xsl:value-of select="helper:newLineAndIndent()"/>
-      <xsl:text>  True</xsl:text>
+      <xsl:text>  true</xsl:text>
     </xsl:if>
 
     <xsl:text>)</xsl:text>
@@ -330,19 +334,22 @@ end
     <xsl:if test="not(preceding::g:page)">
       <xsl:value-of select="helper:newLineAndIndent()"/>
       <xsl:text># A method for each recorded page.</xsl:text>
+      <xsl:value-of select="helper:newLine()"/>
     </xsl:if>
 
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:value-of select="concat('def ', $page-function-name, '(self):')"/>
-    <xsl:value-of select="helper:changeIndent(1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>"""</xsl:text>
+    <xsl:text># </xsl:text>
     <xsl:apply-templates select="*" mode="page-description"/>
-    <xsl:text>."""</xsl:text>
+    <xsl:text>.</xsl:text>
+    <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:value-of select="concat('def ', $page-function-name)"/>
+    <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:apply-templates select="*" mode="page-function"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>return result</xsl:text>
+    <xsl:text>result</xsl:text>
     <xsl:value-of select="helper:changeIndent(-1)"/>
+    <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:text>end</xsl:text>
     <xsl:value-of select="helper:newLine()"/>
   </xsl:template>
 
@@ -371,13 +378,13 @@ end
     </xsl:if>
 
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>instrumentMethod(Test(</xsl:text>
+    <xsl:text>instrument_method(Test.new(</xsl:text>
     <xsl:value-of select="$page-test-number"/>
-    <xsl:text>, 'Page </xsl:text>
+    <xsl:text>, &quot;Page </xsl:text>
     <xsl:value-of select="$page-number"/>
-    <xsl:text>'), '</xsl:text>
+    <xsl:text>&quot;), &quot;</xsl:text>
     <xsl:value-of select="$page-function-name"/>
-    <xsl:text>')</xsl:text>
+    <xsl:text>&quot;)</xsl:text>
   </xsl:template>
 
 
@@ -428,9 +435,9 @@ end
     <xsl:variable name="name" select="//g:token[@token-id=$token-id]/g:name"/>
 
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>self.</xsl:text>
+    <xsl:text>@</xsl:text>
     <xsl:value-of select="$token-id"/>
-    <xsl:text> = \</xsl:text>
+    <xsl:text> =</xsl:text>
 
     <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
@@ -451,16 +458,16 @@ end
           </xsl:otherwise>
         </xsl:choose>
 
-        <xsl:value-of select="helper:quoteForPython($name)"/>
+        <xsl:value-of select="helper:quoteForRuby($name)"/>
         <xsl:text>)</xsl:text>
 
         <xsl:text> # </xsl:text>
-        <xsl:value-of select="helper:quoteForPython(helper:summariseAsLine(g:new-value, 40))"/>
+        <xsl:value-of select="helper:quoteForRuby(helper:summariseAsLine(g:new-value, 40))"/>
         <xsl:value-of select="helper:changeIndent(-1)"/>
       </xsl:when>
 
       <xsl:otherwise>
-        <xsl:value-of select="helper:quoteForPython(g:new-value)"/>
+        <xsl:value-of select="helper:quoteForRuby(g:new-value)"/>
         <xsl:value-of select="helper:changeIndent(-1)"/>
       </xsl:otherwise>
     </xsl:choose>
@@ -492,7 +499,7 @@ end
 
   <xsl:template match="g:path" mode="request-uri">
     <!-- Open quote here, last g:text or g:token-reference will close. -->
-    <xsl:text>'</xsl:text>
+    <xsl:text>&quot;</xsl:text>
     <xsl:apply-templates mode="request-uri"/>
   </xsl:template>
 
@@ -502,7 +509,7 @@ end
     <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
     <!-- Open quote here, last g:text or g:token-reference will close. -->
-    <xsl:text>'?</xsl:text>
+    <xsl:text>&quot;?</xsl:text>
     <xsl:value-of select="helper:changeIndent(-1)"/>
     <xsl:apply-templates mode="request-uri"/>
   </xsl:template>
@@ -517,15 +524,15 @@ end
       <xsl:text> +</xsl:text>
       <xsl:value-of select="helper:changeIndent(1)"/>
       <xsl:value-of select="helper:newLineAndIndent()"/>
-      <xsl:text>'</xsl:text>
+      <xsl:text>&quot;</xsl:text>
       <xsl:value-of select="helper:changeIndent(-1)"/>
     </xsl:if>
 
-    <xsl:value-of select="helper:escape(.)"/>
+    <xsl:value-of select="helper:escapeForRuby(.)"/>
 
     <xsl:if test="position() = last()">
       <!--  Final sibling, close quotes. -->
-      <xsl:text>'</xsl:text>
+      <xsl:text>&quot;</xsl:text>
     </xsl:if>
   </xsl:template>
 
@@ -534,11 +541,11 @@ end
 
     <!-- A previous token-reference will have defined a variable. -->
     <xsl:value-of select="//g:token[@token-id=$token-id]/g:name"/>
-    <xsl:text>=' +</xsl:text>
+    <xsl:text>=&quot; +</xsl:text>
 
     <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>self.</xsl:text>
+    <xsl:text>@</xsl:text>
     <xsl:value-of select="$token-id"/>
     <xsl:value-of select="helper:changeIndent(-1)"/>
 
@@ -555,7 +562,7 @@ end
     <xsl:text>,</xsl:text>
     <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:value-of select="helper:base64ToPython(.)"/>
+    <xsl:value-of select="helper:base64ToRuby(.)"/>
     <xsl:value-of select="helper:changeIndent(-1)"/>
   </xsl:template>
 
@@ -586,7 +593,7 @@ end
     <xsl:text>,</xsl:text>
     <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:value-of select="helper:quoteEOLEscapedStringForPython(.)"/>
+    <xsl:value-of select="helper:quoteEOLEscapedStringForRuby(.)"/>
     <xsl:value-of select="helper:changeIndent(-1)"/>
   </xsl:template>
 
@@ -603,7 +610,7 @@ end
       <!-- No keyword arguments for methods, insert dummy parameter. -->
       <!-- The query string argument is alwasy null for GET, HEAD, as we pass
            query information via the uri. -->
-      <xsl:text>, None</xsl:text>
+      <xsl:text>, nil</xsl:text>
     </xsl:if>
 
     <xsl:text>,</xsl:text>
@@ -615,10 +622,10 @@ end
   <xsl:template match="g:header|g:parameter|g:form-field" mode="list-item">
     <xsl:call-template name="indent-list-item"/>
 
-    <xsl:text>NVPair(</xsl:text>
-    <xsl:value-of select="helper:quoteForPython(@name)"/>
+    <xsl:text>NVPair.new(</xsl:text>
+    <xsl:value-of select="helper:quoteForRuby(@name)"/>
     <xsl:text>, </xsl:text>
-    <xsl:value-of select="helper:quoteForPython(@value)"/>
+    <xsl:value-of select="helper:quoteForRuby(@value)"/>
     <xsl:text>),</xsl:text>
   </xsl:template>
 
@@ -629,9 +636,9 @@ end
     <xsl:call-template name="indent-list-item"/>
 
     <xsl:text>NVPair(</xsl:text>
-    <xsl:value-of select="helper:quoteForPython($name)"/>
+    <xsl:value-of select="helper:quoteForRuby($name)"/>
     <xsl:text>, </xsl:text>
-    <xsl:text>self.</xsl:text>
+    <xsl:text>@</xsl:text>
     <xsl:value-of select="$token-id"/>
     <xsl:text>),</xsl:text>
   </xsl:template>
@@ -642,9 +649,9 @@ end
     </xsl:call-template>
 
     <xsl:text>http_utilities.basicAuthorizationHeader(</xsl:text>
-    <xsl:value-of select="helper:quoteForPython(@userid)"/>
+    <xsl:value-of select="helper:quoteForRuby(@userid)"/>
     <xsl:text>, </xsl:text>
-    <xsl:value-of select="helper:quoteForPython(@password)"/>
+    <xsl:value-of select="helper:quoteForRuby(@password)"/>
     <xsl:text>),</xsl:text>
   </xsl:template>
 

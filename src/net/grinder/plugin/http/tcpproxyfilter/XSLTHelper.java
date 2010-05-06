@@ -48,6 +48,8 @@ import HTTPClient.Codecs;
  * @version $Revision: 3880 $
  */
 public final class XSLTHelper {
+  private static final Utils PYTHON_UTILS = new PythonUtils();
+  private static final Utils RUBY_UTILS = new RubyUtils();
   private static int s_indentLevel;
 
   private XSLTHelper() {
@@ -76,28 +78,19 @@ public final class XSLTHelper {
    * @return The quoted string.
    */
   public static String quoteForPython(String value) {
-    if (value == null) {
-      return "None";
-    }
-
-    final StringBuffer result = new StringBuffer();
-
-    final String quotes = quotes(value);
-
-    result.append(quotes).append(escape(value, false)).append(quotes);
-
-    return result.toString();
+    return PYTHON_UTILS.quote(value);
   }
 
-  /**
-   * Return appropriate Python quotes for the string based on whether
-   * it contains any line separates.
-   *
-   * @param s The string to quote.
-   * @return The quotes.
-   */
-  private static String quotes(String s) {
-    return s.indexOf("\n") > -1 || s.indexOf("\r") > -1 ? "'''" : "'";
+  public static String quoteForRuby(String value) {
+    return RUBY_UTILS.quote(value);
+  }
+
+  public static String escapeForPython(String value) {
+    return PYTHON_UTILS.escape(value);
+  }
+
+  public static String escapeForRuby(String value) {
+    return RUBY_UTILS.escape(value);
   }
 
   /**
@@ -110,17 +103,11 @@ public final class XSLTHelper {
    * @see net.grinder.util.SimpleStringEscaper
    */
   public static String quoteEOLEscapedStringForPython(String value) {
-    if (value == null) {
-      return "None";
-    }
+    return PYTHON_UTILS.quoteEOLEscapedString(value);
+  }
 
-    final StringBuffer result = new StringBuffer();
-
-    final String quotes = quotes(value);
-
-    result.append(quotes).append(escape(value, true)).append(quotes);
-
-    return result.toString();
+  public static String quoteEOLEscapedStringForRuby(String value) {
+    return RUBY_UTILS.quoteEOLEscapedString(value);
   }
 
   /**
@@ -169,83 +156,6 @@ public final class XSLTHelper {
   }
 
   /**
-   * Escape quotes and back slashes for Python. One day, this might escape
-   * white space and non-printable characters too.
-   *
-   * @param value The string.
-   * @return The escaped string.
-   */
-  public static String escape(String value) {
-    return escape(value, false);
-  }
-
-  /**
-   * Escape quotes and back slashes for Python.
-   *
-   * @param value
-   *            The string.
-   * @param preserveEOLQuotes
-   *            <code>true</code> => existing \n and \r quotes should be
-   *            preserved, and literal \n, \r should be removed. (This is for
-   *            strings that have been pre-escaped with
-   *            {@link net.grinder.util.SimpleStringEscaper}).
-   * @return The escaped string.
-   */
-  private static String escape(String value, boolean preserveEOLQuotes) {
-    final int valueLength = value.length();
-
-    final StringBuffer result = new StringBuffer(valueLength);
-
-    for (int i = 0; i < valueLength; ++i) {
-      final char c = value.charAt(i);
-
-      switch (c) {
-      case '\\':
-        if (preserveEOLQuotes && i + 1 < valueLength) {
-          final char nextCharacter = value.charAt(i + 1);
-
-          if (nextCharacter == 'n' ||
-              nextCharacter == 'r') {
-            result.append(c);
-            break;
-          }
-        }
-
-        result.append('\\');
-        result.append(c);
-        break;
-
-      case '\'':
-      case '"':
-        result.append('\\');
-        result.append(c);
-        break;
-
-      case '\n':
-        if (!preserveEOLQuotes) {
-          result.append(c);
-        }
-
-        break;
-
-      case '\r':
-        if (!preserveEOLQuotes) {
-          // We quote line feeds since the Jython parser translates them to
-          // carriage returns (or perhaps the platform line ending?).
-          result.append("\\r");
-        }
-        break;
-
-      default:
-        result.append(c);
-        break;
-      }
-    }
-
-    return result.toString();
-  }
-
-  /**
    * Return an appropriately indent string.
    *
    * @return The string.
@@ -285,7 +195,6 @@ public final class XSLTHelper {
     return "";
   }
 
-
   /**
    * Reset the indent level.
    *
@@ -304,38 +213,236 @@ public final class XSLTHelper {
    * @return The scriptlet.
    */
   public static String base64ToPython(String base64String) {
+    return PYTHON_UTILS.fromBase64(base64String);
+  }
 
-    final byte[] base64 = base64String.getBytes();
+  public static String base64ToRuby(String base64String) {
+    return RUBY_UTILS.fromBase64(base64String);
+  }
 
-    final StringBuffer result = new StringBuffer(base64.length * 2);
-
-    result.append('"');
-
-    if (base64.length > 0) {
-      final byte[] bytes = Codecs.base64Decode(base64);
-
-      for (int i = 0; i < bytes.length; ++i) {
-        if (i > 0 && i % 16 == 0) {
-          result.append('"');
-          result.append(newLineAndIndent());
-          result.append('"');
-        }
-
-        final int b = bytes[i] < 0 ? 0x100 + bytes[i] : bytes[i];
-
-        if (b <= 0xF) {
-          result.append("\\x0");
-        }
-        else {
-          result.append("\\x");
-        }
-
-        result.append(Integer.toHexString(b).toUpperCase());
+  public static abstract class Utils {
+    public String quote(String value) {
+      if (value == null) {
+        return nullValue();
       }
+
+      final StringBuffer result = new StringBuffer();
+
+      final String quotes = quotes(value);
+
+      result.append(quotes).append(escape(value, false)).append(quotes);
+
+      return result.toString();
     }
 
-    result.append('"');
+    public String quoteEOLEscapedString(String value) {
+      if (value == null) {
+        return nullValue();
+      }
 
-    return result.toString();
+      final StringBuffer result = new StringBuffer();
+
+      final String quotes = quotes(value);
+
+      result.append(quotes).append(escape(value, true)).append(quotes);
+
+      return result.toString();
+    }
+
+    public static String fromBase64(String base64String) {
+      final byte[] base64 = base64String.getBytes();
+
+      final StringBuffer result = new StringBuffer(base64.length * 2);
+
+      result.append('"');
+
+      if (base64.length > 0) {
+        final byte[] bytes = Codecs.base64Decode(base64);
+
+        for (int i = 0; i < bytes.length; ++i) {
+          if (i > 0 && i % 16 == 0) {
+            result.append('"');
+            result.append(newLineAndIndent());
+            result.append('"');
+          }
+
+          final int b = bytes[i] < 0 ? 0x100 + bytes[i] : bytes[i];
+
+          if (b <= 0xF) {
+            result.append("\\x0");
+          }
+          else {
+            result.append("\\x");
+          }
+
+          result.append(Integer.toHexString(b).toUpperCase());
+        }
+      }
+
+      result.append('"');
+
+      return result.toString();
+    }
+
+    public abstract String nullValue();
+    public abstract String quotes(String s);
+    public abstract String escape(String value);
+    public abstract String escape(String value, boolean preserveEOLQuotes);
+  }
+
+  public static class PythonUtils extends Utils {
+    public String nullValue() {
+      return "None";
+    }
+
+    /**
+     * Return appropriate Python quotes for the string based on whether
+     * it contains any line separates.
+     *
+     * @param s The string to quote.
+     * @return The quotes.
+     */
+    public String quotes(String s) {
+      return s.indexOf("\n") > -1 || s.indexOf("\r") > -1 ? "'''" : "'";
+    }
+
+    /**
+     * Escape quotes and back slashes for Python. One day, this might escape
+     * white space and non-printable characters too.
+     *
+     * @param value The string.
+     * @return The escaped string.
+     */
+    public String escape(String value) {
+      return escape(value, false);
+    }
+
+    /**
+     * Escape quotes and back slashes for Python.
+     *
+     * @param value
+     *            The string.
+     * @param preserveEOLQuotes
+     *            <code>true</code> => existing \n and \r quotes should be
+     *            preserved, and literal \n, \r should be removed. (This is for
+     *            strings that have been pre-escaped with
+     *            {@link net.grinder.util.SimpleStringEscaper}).
+     * @return The escaped string.
+     */
+    public String escape(String value, boolean preserveEOLQuotes) {
+      final int valueLength = value.length();
+
+      final StringBuffer result = new StringBuffer(valueLength);
+
+      for (int i = 0; i < valueLength; ++i) {
+        final char c = value.charAt(i);
+
+        switch (c) {
+        case '\\':
+          if (preserveEOLQuotes && i + 1 < valueLength) {
+            final char nextCharacter = value.charAt(i + 1);
+
+            if (nextCharacter == 'n' ||
+                nextCharacter == 'r') {
+              result.append(c);
+              break;
+            }
+          }
+
+          result.append('\\');
+          result.append(c);
+          break;
+
+        case '\'':
+        case '"':
+          result.append('\\');
+          result.append(c);
+          break;
+
+        case '\n':
+          if (!preserveEOLQuotes) {
+            result.append(c);
+          }
+
+          break;
+
+        case '\r':
+          if (!preserveEOLQuotes) {
+            // We quote line feeds since the Jython parser translates them to
+            // carriage returns (or perhaps the platform line ending?).
+            result.append("\\r");
+          }
+          break;
+
+        default:
+          result.append(c);
+          break;
+        }
+      }
+
+      return result.toString();
+    }
+  }
+
+  public static class RubyUtils extends Utils {
+    public String nullValue() {
+      return "nil";
+    }
+
+    public String quotes(String s) {
+      return "\"";
+    }
+
+    public String escape(String value) {
+      return escape(value, false);
+    }
+
+    public String escape(String value, boolean preserveEOLQuotes) {
+      final int valueLength = value.length();
+
+      final StringBuffer result = new StringBuffer(valueLength);
+
+      for (int i = 0; i < valueLength; ++i) {
+        final char c = value.charAt(i);
+
+        switch (c) {
+        case '\\':
+          if (preserveEOLQuotes && i + 1 < valueLength) {
+            final char nextCharacter = value.charAt(i + 1);
+
+            if (nextCharacter == 'n' ||
+                nextCharacter == 'r') {
+              result.append(c);
+              break;
+            }
+          }
+
+          result.append('\\');
+          result.append(c);
+          break;
+
+        case '\'':
+        case '"':
+        case '#':
+          result.append('\\');
+          result.append(c);
+          break;
+
+        case '\n':
+        case '\r':
+          if (!preserveEOLQuotes) {
+            result.append(c);
+          }
+
+          break;
+
+        default:
+          result.append(c);
+          break;
+        }
+      }
+
+      return result.toString();
+    }
   }
 }
