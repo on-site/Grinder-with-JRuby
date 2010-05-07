@@ -107,11 +107,13 @@ end
     <xsl:text>def instrument_method(test, method_name, c = TestRunner)</xsl:text>
     <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>unadorned = getattr(c, method_name)</xsl:text>
+    <xsl:text>c.send :alias_method, "unadorned_#{method_name}", method_name</xsl:text>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>method = new.instancemethod(test.wrap(unadorned), nil, c)</xsl:text>
+    <xsl:text>method = c.instance_method "unadorned_#{method_name}"</xsl:text>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>setattr(c, method_name, method)</xsl:text>
+    <xsl:text>wrapped = test.wrap method</xsl:text>
+    <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:text>c.send :define_method, method_name, wrapped</xsl:text>
     <xsl:value-of select="helper:changeIndent(-1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
     <xsl:text>end</xsl:text>
