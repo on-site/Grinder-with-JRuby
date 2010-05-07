@@ -264,10 +264,11 @@ end
 
     <xsl:apply-templates select="g:uri/g:path" mode="request-uri"/>
     <xsl:apply-templates select="g:uri/g:query-string" mode="request-uri"/>
+    <xsl:text>&quot;</xsl:text>
+
     <xsl:apply-templates select="g:uri/g:fragment" mode="request-uri"/>
     <xsl:apply-templates select="g:body" mode="request-uri"/>
     <xsl:apply-templates select="g:headers" mode="request-uri"/>
-    <xsl:text>&quot;</xsl:text>
 
     <xsl:if test="string(g:body/g:form/@multipart) = 'true'">
       <xsl:text>,</xsl:text>
@@ -634,7 +635,7 @@ end
 
     <xsl:apply-templates mode="list-item"/>
 
-    <xsl:text> ]</xsl:text>
+    <xsl:text>]</xsl:text>
     <xsl:value-of select="helper:changeIndent(-2)"/>
   </xsl:template>
 
@@ -642,12 +643,12 @@ end
   <xsl:template name="tuple">
     <xsl:value-of select="helper:changeIndent(1)"/>
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>(</xsl:text>
+    <xsl:text>[</xsl:text>
     <xsl:value-of select="helper:changeIndent(1)"/>
 
     <xsl:apply-templates mode="list-item"/>
 
-    <xsl:text> )</xsl:text>
+    <xsl:text>]</xsl:text>
     <xsl:value-of select="helper:changeIndent(-2)"/>
   </xsl:template>
 
