@@ -43,6 +43,8 @@
 
     <xsl:text>
 
+require "java"
+
 module HTTPClient
   include_package "HTTPClient"
 end
