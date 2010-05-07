@@ -43,12 +43,16 @@
 
     <xsl:text>
 
+module HTTPClient
+  include_package "HTTPClient"
+end
+
 net = Java::Net
 import net.grinder.script.Test
 import net.grinder.script.Grinder
 import net.grinder.plugin.http.HTTPPluginControl
 import net.grinder.plugin.http.HTTPRequest
-import Java::HTTPClient::NVPair
+import HTTPClient::NVPair
 
 def grinder
   Grinder.grinder
