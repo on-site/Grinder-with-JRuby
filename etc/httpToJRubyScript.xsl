@@ -260,13 +260,14 @@ end
     <xsl:apply-templates select="." mode="generate-test-number"/>
     <xsl:text>.</xsl:text>
     <xsl:value-of select="g:method"/>
-    <xsl:text>(</xsl:text>
+    <xsl:text>(&quot;</xsl:text>
 
     <xsl:apply-templates select="g:uri/g:path" mode="request-uri"/>
     <xsl:apply-templates select="g:uri/g:query-string" mode="request-uri"/>
     <xsl:apply-templates select="g:uri/g:fragment" mode="request-uri"/>
     <xsl:apply-templates select="g:body" mode="request-uri"/>
     <xsl:apply-templates select="g:headers" mode="request-uri"/>
+    <xsl:text>&quot;</xsl:text>
 
     <xsl:if test="string(g:body/g:form/@multipart) = 'true'">
       <xsl:text>,</xsl:text>
@@ -372,7 +373,6 @@ end
       <xsl:text># Replace each method with an instrumented version.</xsl:text>
       <xsl:value-of select="helper:newLineAndIndent()"/>
       <xsl:text># You can call the unadorned method using </xsl:text>
-      <xsl:text>self.</xsl:text>
       <xsl:value-of select="$page-function-name"/>
       <xsl:text>.__target__().</xsl:text>
     </xsl:if>
@@ -396,7 +396,7 @@ end
     </xsl:variable>
 
     <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:value-of select="concat('self.', $page-function-name, '()')"/>
+    <xsl:value-of select="$page-function-name"/>
     <xsl:call-template name="indent">
       <xsl:with-param name="characters" select="12-string-length($page-function-name)"/>
     </xsl:call-template>
@@ -437,10 +437,7 @@ end
     <xsl:value-of select="helper:newLineAndIndent()"/>
     <xsl:text>@</xsl:text>
     <xsl:value-of select="$token-id"/>
-    <xsl:text> =</xsl:text>
-
-    <xsl:value-of select="helper:changeIndent(1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
+    <xsl:text> = </xsl:text>
 
     <xsl:choose>
       <xsl:when test="@source">
@@ -463,12 +460,10 @@ end
 
         <xsl:text> # </xsl:text>
         <xsl:value-of select="helper:quoteForRuby(helper:summariseAsLine(g:new-value, 40))"/>
-        <xsl:value-of select="helper:changeIndent(-1)"/>
       </xsl:when>
 
       <xsl:otherwise>
         <xsl:value-of select="helper:quoteForRuby(g:new-value)"/>
-        <xsl:value-of select="helper:changeIndent(-1)"/>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
@@ -498,19 +493,12 @@ end
 
 
   <xsl:template match="g:path" mode="request-uri">
-    <!-- Open quote here, last g:text or g:token-reference will close. -->
-    <xsl:text>&quot;</xsl:text>
     <xsl:apply-templates mode="request-uri"/>
   </xsl:template>
 
 
   <xsl:template match="g:query-string" mode="request-uri">
-    <xsl:text> +</xsl:text>
-    <xsl:value-of select="helper:changeIndent(1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <!-- Open quote here, last g:text or g:token-reference will close. -->
-    <xsl:text>&quot;?</xsl:text>
-    <xsl:value-of select="helper:changeIndent(-1)"/>
+    <xsl:text>?</xsl:text>
     <xsl:apply-templates mode="request-uri"/>
   </xsl:template>
 
@@ -519,21 +507,7 @@ end
     <xsl:variable
       name="preceding-sibling-name"
       select="local-name(preceding-sibling::node()[1])"/>
-
-    <xsl:if test="position() != 1 and $preceding-sibling-name != 'text'">
-      <xsl:text> +</xsl:text>
-      <xsl:value-of select="helper:changeIndent(1)"/>
-      <xsl:value-of select="helper:newLineAndIndent()"/>
-      <xsl:text>&quot;</xsl:text>
-      <xsl:value-of select="helper:changeIndent(-1)"/>
-    </xsl:if>
-
     <xsl:value-of select="helper:escapeForRuby(.)"/>
-
-    <xsl:if test="position() = last()">
-      <!--  Final sibling, close quotes. -->
-      <xsl:text>&quot;</xsl:text>
-    </xsl:if>
   </xsl:template>
 
   <xsl:template match="g:path/g:token-reference|g:query-string/g:token-reference" mode="request-uri">
@@ -541,13 +515,9 @@ end
 
     <!-- A previous token-reference will have defined a variable. -->
     <xsl:value-of select="//g:token[@token-id=$token-id]/g:name"/>
-    <xsl:text>=&quot; +</xsl:text>
-
-    <xsl:value-of select="helper:changeIndent(1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>@</xsl:text>
+    <xsl:text>=#{@</xsl:text>
     <xsl:value-of select="$token-id"/>
-    <xsl:value-of select="helper:changeIndent(-1)"/>
+    <xsl:text>}</xsl:text>
 
   </xsl:template>
 
