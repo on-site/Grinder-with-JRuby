@@ -48,8 +48,9 @@ module HTTPClient
 end
 
 net = Java::Net
-import net.grinder.script.Test
 import net.grinder.script.Grinder
+import net.grinder.script.JRubyUtil
+import net.grinder.script.Test
 import net.grinder.plugin.http.HTTPPluginControl
 import net.grinder.plugin.http.HTTPRequest
 import HTTPClient::NVPair
@@ -144,16 +145,18 @@ end
 
   <xsl:template match="g:common-headers[@headers-id='defaultHeaders']" mode="file">
     <xsl:value-of select="helper:newLine()"/>
-    <xsl:text>connection_defaults.defaultHeaders =</xsl:text>
+    <xsl:text>connection_defaults.defaultHeaders = JRubyUtil.array(</xsl:text>
     <xsl:call-template name="list"/>
+    <xsl:text>, NVPair)</xsl:text>
     <xsl:value-of select="helper:newLine()"/>
   </xsl:template>
 
 
   <xsl:template match="g:common-headers" mode="file">
     <xsl:value-of select="helper:newLine()"/>
-    <xsl:value-of select="concat(@headers-id, ' =')"/>
+    <xsl:value-of select="concat(@headers-id, ' = JRubyUtil.array(')"/>
     <xsl:call-template name="list"/>
+    <xsl:text>, NVPair)</xsl:text>
     <xsl:value-of select="helper:newLine()"/>
   </xsl:template>
 
@@ -561,8 +564,9 @@ end
 
 
   <xsl:template match="g:body/g:form" mode="request-uri">
-    <xsl:text>,</xsl:text>
+    <xsl:text>, JRubyUtil.array(</xsl:text>
     <xsl:call-template name="tuple"/>
+    <xsl:text>, NVPair)</xsl:text>
   </xsl:template>
 
 
@@ -590,9 +594,9 @@ end
       <xsl:text>, nil</xsl:text>
     </xsl:if>
 
-    <xsl:text>,</xsl:text>
-
+    <xsl:text>, JRubyUtil.array(</xsl:text>
     <xsl:call-template name="tuple"/>
+    <xsl:text>, NVPair)</xsl:text>
   </xsl:template>
 
 
@@ -612,7 +616,7 @@ end
 
     <xsl:call-template name="indent-list-item"/>
 
-    <xsl:text>NVPair(</xsl:text>
+    <xsl:text>NVPair.new(</xsl:text>
     <xsl:value-of select="helper:quoteForRuby($name)"/>
     <xsl:text>, </xsl:text>
     <xsl:text>@</xsl:text>
