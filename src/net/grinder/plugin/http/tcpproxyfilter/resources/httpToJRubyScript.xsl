@@ -69,6 +69,8 @@ def http_utilities
   HTTPPluginControl.getHTTPUtilities
 end
 
+REQUEST = {}
+
 # To use a proxy server, uncomment the next line and set the host and port.
 # connection_defaults.set_proxy_server("localhost", 8001)
 
@@ -107,24 +109,21 @@ end
     <xsl:value-of select="helper:changeIndent(-1)"/>
     <xsl:text>end</xsl:text>
     <xsl:value-of select="helper:newLine()"/>
-    <xsl:value-of select="helper:newLine()"/>
 
-    <xsl:text># Instrument a method with the given Test.</xsl:text>
-    <xsl:value-of select="helper:newLine()"/>
-    <xsl:text>def instrument_method(test, method_name, c = TestRunner)</xsl:text>
-    <xsl:value-of select="helper:changeIndent(1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>c.send :alias_method, "unadorned_#{method_name}", method_name</xsl:text>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>method = c.instance_method "unadorned_#{method_name}"</xsl:text>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>wrapped = test.wrap method</xsl:text>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>c.send :define_method, method_name, wrapped</xsl:text>
-    <xsl:value-of select="helper:changeIndent(-1)"/>
-    <xsl:value-of select="helper:newLineAndIndent()"/>
-    <xsl:text>end</xsl:text>
-    <xsl:value-of select="helper:newLine()"/>
+    <xsl:text>
+# Instrument a method with the given Test.
+def instrument_method(test, method_name, c = TestRunner)
+  c.send :alias_method, "unadorned_#{method_name}", method_name
+
+  wrapped = JRubyUtil.wrap test do |instance|
+    instance.send "unadorned_#{method_name}"
+  end
+
+  c.send :define_method, method_name do
+    wrapped.call self
+  end
+end
+</xsl:text>
 
     <xsl:apply-templates select="*" mode="instrumentMethod"/>
     <xsl:value-of select="helper:newLine()"/>
@@ -181,7 +180,7 @@ end
     <xsl:variable name="request-number">
       <xsl:apply-templates select ="." mode="generate-test-number"/>
     </xsl:variable>
-    <xsl:variable name="request-name" select="concat('request', $request-number)"/>
+    <xsl:variable name="request-name" select="concat('REQUEST[', $request-number, ']')"/>
 
     <xsl:if test="not(preceding::g:request)">
       <xsl:value-of select="helper:newLineAndIndent()"/>
@@ -267,9 +266,9 @@ end
     <xsl:if test="position() = 1">
       <xsl:text>result = </xsl:text>
     </xsl:if>
-    <xsl:text>request</xsl:text>
+    <xsl:text>REQUEST[</xsl:text>
     <xsl:apply-templates select="." mode="generate-test-number"/>
-    <xsl:text>.</xsl:text>
+    <xsl:text>].</xsl:text>
     <xsl:value-of select="g:method"/>
     <xsl:text>(&quot;</xsl:text>
 

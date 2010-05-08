@@ -47,4 +47,63 @@ public class JRubyUtil {
 
         return array;
     }
+
+    /**
+     * Wrap the given callback via the given test and return the
+     * result.  The result is actually a new Callback instance to
+     * ensure that it is wrapped properly (wrapping a JRuby object
+     * doesn't seem to work so well... it often won't record the
+     * method properly, either something extra is invoked, or nothing
+     * is recorded).
+     *
+     * @param test The test to wrap with.
+     * @param callback The callback to wrap.
+     * @return The new wrapped callback.
+     */
+    public static Object wrap(Test test, final Callback callback) throws NotWrappableTypeException {
+        Callback recorded = new Callback() {
+            public Object call(Object arg) {
+                return callback.call(arg);
+            }
+        };
+
+        return test.wrap(recorded);
+    }
+
+    /**
+     * Record the given callback via the given test and return the
+     * result.  The result is actually a new Callback instance to
+     * ensure that it is recorded properly (recording a JRuby object
+     * doesn't seem to work so well... it often won't record the
+     * method properly, either something extra is invoked, or nothing
+     * is recorded).
+     *
+     * @param test The test to record with.
+     * @param callback The callback to record.
+     * @return The new recorded callback.
+     */
+    public static Callback record(Test test, final Callback callback) throws NonInstrumentableTypeException {
+        Callback recorded = new Callback() {
+            public Object call(Object arg) {
+                return callback.call(arg);
+            }
+        };
+
+        test.record(recorded);
+        return recorded;
+    }
+
+    /**
+     * A simple callback interface to make it easy to pass in a
+     * closure from the JRuby side.
+     */
+    public static interface Callback {
+        /**
+         * Invoke the closure with the given argument.
+         *
+         * @param arg The parameter that the closure may need.
+         * @return Whatever the closure wants to return.
+         */
+        Object call(Object arg);
+    }
 }
